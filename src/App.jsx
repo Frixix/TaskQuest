@@ -34,6 +34,11 @@ const toggleTask = (id) => {
   setTasks(updatedTasks);
 };
 
+const deleteTask = (id) => {
+  const filteredTasks = tasks.filter((tarea) => tarea.id !== id);
+  setTasks(filteredTasks);
+};
+
   // 🔵 UI
   return (
     <div>
@@ -52,15 +57,23 @@ const toggleTask = (id) => {
       <ul>
         {tasks.map((tarea) => (
           <li
-          key={tarea.id}
-          onClick={() => toggleTask(tarea.id)}
-          style={{
-            textDecoration: tarea.completed ? "line-through" : "none",
-            cursor: "pointer"
-          }}
-        >
-          {tarea.title}
-        </li>
+            key={tarea.id}
+            style={{
+              textDecoration: tarea.completed ? "line-through" : "none",
+              cursor: "pointer"
+            }}
+          >
+            <span onClick={() => toggleTask(tarea.id)}>
+              {tarea.title}
+            </span>{" "}
+
+            <button 
+              onClick={() => deleteTask(tarea.id)}
+              style={{ marginLeft: "10px" }}
+            >
+              ❌
+            </button>
+          </li>
         ))}
       </ul>
     </div>
