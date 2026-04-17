@@ -14,59 +14,72 @@ function App() {
 
   // 🟢 FUNCIONES
 
-const addTask = () => {
-  if (task.trim() === "") return;
+  const addTask = () => {
+    if (task.trim() === "") return;
 
-  if (editingId !== null) {
-    // ✏️ EDITAR
+    if (editingId !== null) {
+      // ✏️ EDITAR
+      const updatedTasks = tasks.map((tarea) => {
+        if (tarea.id === editingId) {
+          return { ...tarea, title: task };
+        }
+        return tarea;
+      });
+
+      setTasks(updatedTasks);
+      setEditingId(null);
+    } else {
+      // ➕ CREAR
+      const newTask = {
+        id: Date.now(),
+        title: task,
+        difficulty: "easy", // por ahora fijo
+        xp: 10,
+        completed: false
+      };
+
+      setTasks([...tasks, newTask]);
+    }
+
+  setTask("");
+};
+
+  const toggleTask = (id) => {
+    let xpChange = 0;
+
     const updatedTasks = tasks.map((tarea) => {
-      if (tarea.id === editingId) {
-        return { ...tarea, title: task };
+      if (tarea.id === id) {
+        const newCompleted = !tarea.completed;
+
+        // calcular XP
+        xpChange = newCompleted ? tarea.xp : -tarea.xp;
+
+        return {
+          ...tarea,
+          completed: newCompleted
+        };
       }
       return tarea;
     });
 
     setTasks(updatedTasks);
-    setEditingId(null);
-  } else {
-    // ➕ CREAR
-    const newTask = {
-      id: Date.now(),
-      title: task,
-      difficulty: "easy", // por ahora fijo
-      xp: 10,
-      completed: false
-    };
 
-    setTasks([...tasks, newTask]);
-  }
+    // actualizar usuario
+    setUser((prevUser) => ({
+      ...prevUser,
+      xp: Math.max(0, prevUser.xp + xpChange)
+    }));
+  };
 
-  setTask("");
-};
+  const deleteTask = (id) => {
+    const filteredTasks = tasks.filter((tarea) => tarea.id !== id);
+    setTasks(filteredTasks);
+  };
 
-const toggleTask = (id) => {
-  const updatedTasks = tasks.map((tarea) => {
-    if (tarea.id === id) {
-      return {
-        ...tarea,
-        completed: !tarea.completed
-      };
-    }
-    return tarea;
-  });
-
-  setTasks(updatedTasks);
-};
-
-const deleteTask = (id) => {
-  const filteredTasks = tasks.filter((tarea) => tarea.id !== id);
-  setTasks(filteredTasks);
-};
-
-const startEditing = (tarea) => {
-  setTask(tarea.title);
-  setEditingId(tarea.id);
-};
+  const startEditing = (tarea) => {
+    setTask(tarea.title);
+    setEditingId(tarea.id);
+  };
 
 
 
@@ -92,28 +105,31 @@ const startEditing = (tarea) => {
       <ul>
         {tasks.map((tarea) => (
           <li
-            key={tarea.id}
-            style={{
-              textDecoration: tarea.completed ? "line-through" : "none",
-              cursor: "pointer"
-            }}
-          >
-            <span onClick={() => toggleTask(tarea.id)}>
-              {tarea.title}
-            </span>{" "}
-
-            <button 
-              onClick={() => deleteTask(tarea.id)}
-              style={{ marginLeft: "10px" }}
+              key={tarea.id}
+              style={{
+                textDecoration: tarea.completed ? "line-through" : "none"
+              }}
             >
-              ❌
-            </button>
-            <button onClick={() => startEditing(tarea)}>
-            ✏️
-          </button>
-          <span onClick={() => toggleTask(tarea.id)}>
-            {tarea.title} ({tarea.difficulty})
-          </span>
+            <span
+              onClick={() => toggleTask(tarea.id)}
+              style={{ cursor: "pointer" }}
+            >
+              {tarea.title} ({tarea.difficulty})
+            </span>
+
+              <button
+                onClick={() => startEditing(tarea)}
+                style={{ marginLeft: "10px" }}
+              >
+                ✏️
+              </button>
+
+              <button
+                onClick={() => deleteTask(tarea.id)}
+                style={{ marginLeft: "5px" }}
+              >
+                ❌
+              </button>
           </li>
         ))}
       </ul>
