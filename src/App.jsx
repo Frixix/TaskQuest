@@ -4,22 +4,40 @@ function App() {
   // 🟢 ESTADOS
   const [task, setTask] = useState("");
   const [tasks, setTasks] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
   // 🟢 FUNCIONES
 
 const addTask = () => {
   if (task.trim() === "") return;
 
-  const newTask = {
-    id: Date.now(),
-    title: task,
-    completed: false
-  };
+  if (editingId !== null) {
+    // ✏️ EDITAR
+    const updatedTasks = tasks.map((tarea) => {
+      if (tarea.id === editingId) {
+        return { ...tarea, title: task };
+      }
+      return tarea;
+    });
 
-  setTasks([...tasks, newTask]);
+    setTasks(updatedTasks);
+    setEditingId(null);
+  } else {
+    // ➕ CREAR
+    const newTask = {
+      id: Date.now(),
+      title: task,
+      difficulty: "easy", // por ahora fijo
+      xp: 10,
+      completed: false
+    };
+
+    setTasks([...tasks, newTask]);
+  }
 
   setTask("");
 };
+
 const toggleTask = (id) => {
   const updatedTasks = tasks.map((tarea) => {
     if (tarea.id === id) {
@@ -38,6 +56,13 @@ const deleteTask = (id) => {
   const filteredTasks = tasks.filter((tarea) => tarea.id !== id);
   setTasks(filteredTasks);
 };
+
+const startEditing = (tarea) => {
+  setTask(tarea.title);
+  setEditingId(tarea.id);
+};
+
+
 
   // 🔵 UI
   return (
@@ -73,6 +98,12 @@ const deleteTask = (id) => {
             >
               ❌
             </button>
+            <button onClick={() => startEditing(tarea)}>
+            ✏️
+          </button>
+          <span onClick={() => toggleTask(tarea.id)}>
+            {tarea.title} ({tarea.difficulty})
+          </span>
           </li>
         ))}
       </ul>
