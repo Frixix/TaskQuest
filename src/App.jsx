@@ -6,6 +6,12 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [editingId, setEditingId] = useState(null);
 
+  const [user, setUser] = useState({
+  level: 1,
+  xp: 0,
+  xpToNextLevel: 100
+});
+
   // 🟢 FUNCIONES
 
 const addTask = () => {
@@ -68,6 +74,10 @@ const startEditing = (tarea) => {
   return (
     <div>
       <h1>TaskQuest</h1>
+        <div>
+          <h2>Nivel: {user.level}</h2>
+          <p>XP: {user.xp} / {user.xpToNextLevel}</p>
+        </div>
 
       <input
         type="text"
