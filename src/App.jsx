@@ -65,10 +65,24 @@ function App() {
     setTasks(updatedTasks);
 
     // actualizar usuario
-    setUser((prevUser) => ({
-      ...prevUser,
-      xp: Math.max(0, prevUser.xp + xpChange)
-    }));
+  setUser((prevUser) => {
+    let newXp = Math.max(0, prevUser.xp + xpChange);
+    let newLevel = prevUser.level;
+    let newXpToNextLevel = prevUser.xpToNextLevel;
+
+    // 🔁 subir de nivel si alcanza
+    while (newXp >= newXpToNextLevel) {
+      newXp -= newXpToNextLevel;
+      newLevel += 1;
+      newXpToNextLevel = Math.floor(newXpToNextLevel * 1.5);
+    }
+
+    return {
+      level: newLevel,
+      xp: newXp,
+      xpToNextLevel: newXpToNextLevel
+    };
+  });
   };
 
   const deleteTask = (id) => {
