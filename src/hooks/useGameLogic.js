@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
+import { XP_VALUES, calculateLevel } from "../utils/xpSystem";
+
+const STORAGE_KEY = "taskquest";
 
 const ACHIEVEMENTS = [
   { id: 1, title: "Primer paso", condition: 1 },
   { id: 2, title: "Productivo", condition: 5 },
   { id: 3, title: "Imparable", condition: 10 }
 ];
-
-const STORAGE_KEY = "taskquest_data";
 
 export function useGameLogic() {
   const [tasks, setTasks] = useState([]);
@@ -16,62 +17,47 @@ export function useGameLogic() {
   const [user, setUser] = useState({
     level: 1,
     xp: 0,
-    xpToNextLevel: 100
+    xpToNextLevel: 50 // más rápido para probar
   });
 
-  // 🧠 CARGAR DATOS AL INICIAR
+  // 🔁 Cargar localStorage
   useEffect(() => {
-    try {
-      const savedData = localStorage.getItem(STORAGE_KEY);
-
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-
-        if (parsed.tasks) setTasks(parsed.tasks);
-        if (parsed.user) setUser(parsed.user);
-        if (parsed.achievements) setAchievements(parsed.achievements);
-      }
-    } catch (error) {
-      console.error("Error cargando datos", error);
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      setTasks(data.tasks || []);
+      setUser(data.user || user);
+      setAchievements(data.achievements || []);
     }
   }, []);
 
-  // 💾 GUARDAR AUTOMÁTICAMENTE
+  // 💾 Guardar
   useEffect(() => {
-    const dataToSave = {
-      tasks,
-      user,
-      achievements
-    };
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ tasks, user, achievements })
+    );
   }, [tasks, user, achievements]);
 
-  // 🟢 FUNCIONES
-
   const addTask = (task, setTask) => {
-    if (task.trim() === "") return;
+    if (!task.trim()) return;
 
     if (editingId !== null) {
-      const updatedTasks = tasks.map((tarea) => {
-        if (tarea.id === editingId) {
-          return { ...tarea, title: task };
-        }
-        return tarea;
-      });
-
-      setTasks(updatedTasks);
+      setTasks(tasks.map(t =>
+        t.id === editingId ? { ...t, title: task } : t
+      ));
       setEditingId(null);
     } else {
-      const newTask = {
-        id: Date.now(),
-        title: task,
-        difficulty: "easy",
-        xp: 10,
-        completed: false
-      };
-
-      setTasks([...tasks, newTask]);
+      setTasks([
+        ...tasks,
+        {
+          id: Date.now(),
+          title: task,
+          difficulty: "easy",
+          xp: XP_VALUES.easy,
+          completed: false
+        }
+      ]);
     }
 
     setTask("");
@@ -80,68 +66,43 @@ export function useGameLogic() {
   const toggleTask = (id) => {
     let xpChange = 0;
 
-    const updatedTasks = tasks.map((tarea) => {
-      if (tarea.id === id) {
-        const newCompleted = !tarea.completed;
-
-        xpChange = newCompleted ? tarea.xp : -tarea.xp;
-
-        return {
-          ...tarea,
-          completed: newCompleted
-        };
+    const updated = tasks.map((t) => {
+      if (t.id === id) {
+        const completed = !t.completed;
+        xpChange = completed ? t.xp : -t.xp;
+        return { ...t, completed };
       }
-      return tarea;
+      return t;
     });
 
-    setTasks(updatedTasks);
-    checkAchievements(updatedTasks);
+    setTasks(updated);
+    updateUserXP(xpChange);
+    checkAchievements(updated);
+  };
 
-    setUser((prevUser) => {
-      let newXp = Math.max(0, prevUser.xp + xpChange);
-      let newLevel = prevUser.level;
-      let newXpToNextLevel = prevUser.xpToNextLevel;
-
-      while (newXp >= newXpToNextLevel) {
-        newXp -= newXpToNextLevel;
-        newLevel += 1;
-        newXpToNextLevel = Math.floor(newXpToNextLevel * 1.5);
-      }
-
-      if (newLevel > prevUser.level) {
-        alert("¡Subiste de nivel!");
-      }
-
-      return {
-        level: newLevel,
-        xp: newXp,
-        xpToNextLevel: newXpToNextLevel
-      };
-    });
+  const updateUserXP = (xpChange) => {
+    setUser(prev => calculateLevel(prev, xpChange));
   };
 
   const deleteTask = (id) => {
-    const filteredTasks = tasks.filter((t) => t.id !== id);
-    setTasks(filteredTasks);
+    setTasks(tasks.filter(t => t.id !== id));
   };
 
-  const startEditing = (tarea, setTask) => {
-    setTask(tarea.title);
-    setEditingId(tarea.id);
+  const startEditing = (task, setTask) => {
+    setTask(task.title);
+    setEditingId(task.id);
   };
 
   const checkAchievements = (updatedTasks) => {
-    const completedCount = updatedTasks.filter((t) => t.completed).length;
+    const completed = updatedTasks.filter(t => t.completed).length;
 
-    const unlockedIds = new Set(achievements.map((a) => a.id));
+    const unlocked = ACHIEVEMENTS.filter(a =>
+      completed >= a.condition &&
+      !achievements.some(x => x.id === a.id)
+    );
 
-    const newAchievements = ACHIEVEMENTS.filter((a) => {
-      return completedCount >= a.condition && !unlockedIds.has(a.id);
-    });
-
-    if (newAchievements.length > 0) {
-      setAchievements((prev) => [...prev, ...newAchievements]);
-      alert("¡Logro desbloqueado!");
+    if (unlocked.length) {
+      setAchievements([...achievements, ...unlocked]);
     }
   };
 
