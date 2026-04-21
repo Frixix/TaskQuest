@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGameLogic } from "./hooks/useGameLogic";
+import levelUpSound from "./assets/sounds/level-up.mp3";
 
 function App() {
   // 🟢 INPUT CONTROLADO
@@ -8,7 +9,20 @@ function App() {
   // 🟢 ESTADO PARA ANIMACIÓN DE LEVEL UP
   const [levelUp, setLevelUp] = useState(false);
 
-  // 🧠 LÓGICA DEL JUEGO (HOOK)
+  // 🔊 AUDIO PERSISTENTE
+  const audioRef = useRef(null);
+
+  // 🧠 GUARDAR NIVEL ANTERIOR
+  const prevLevelRef = useRef(1);
+
+  // 🧱 INICIALIZAR AUDIO (una sola vez)
+  useEffect(() => {
+    const audio = new Audio(levelUpSound);
+    audio.volume = 0.5;
+    audioRef.current = audio;
+  }, []);
+
+  // 🧠 LÓGICA DEL JUEGO
   const {
     tasks,
     user,
@@ -20,22 +34,58 @@ function App() {
     startEditing
   } = useGameLogic();
 
-  // 🎮 EFECTO: CUANDO CAMBIA EL NIVEL → ANIMACIÓN
+  // 🎮 DETECTAR SUBIDA DE NIVEL
   useEffect(() => {
-    setLevelUp(true);
+    const prevLevel = prevLevelRef.current;
 
-    const timer = setTimeout(() => {
-      setLevelUp(false);
-    }, 800);
+    console.log("Nivel actual:", user.level);
+    console.log("Nivel anterior:", prevLevel);
 
-    return () => clearTimeout(timer);
+    if (user.level > prevLevel) {
+      console.log("🔥 SUBIÓ DE NIVEL 🔥");
+
+      // 🎉 ANIMACIÓN
+      setLevelUp(true);
+
+      // 🔊 SONIDO
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play()
+          .then(() => console.log("SONANDO"))
+          .catch((e) => console.log("ERROR AUDIO:", e));
+      }
+
+      // ⏱️ quitar animación
+      const timer = setTimeout(() => {
+        setLevelUp(false);
+      }, 800);
+
+      return () => clearTimeout(timer);
+    }
+
+    // actualizar nivel previo
+    prevLevelRef.current = user.level;
   }, [user.level]);
 
   return (
     <div style={{ textAlign: "center" }}>
       <h1>TaskQuest</h1>
 
-      {/* 🎮 NIVEL CON ANIMACIÓN */}
+      {/* 🔊 BOTÓN DE PRUEBA */}
+      <button
+        onClick={() => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play()
+              .then(() => console.log("SONANDO"))
+              .catch((e) => console.log("ERROR AUDIO:", e));
+          }
+        }}
+      >
+        🔊 Probar sonido
+      </button>
+
+      {/* 🎮 NIVEL */}
       <h2
         style={{
           transform: levelUp ? "scale(1.3)" : "scale(1)",
@@ -46,7 +96,7 @@ function App() {
         Nivel: {user.level}
       </h2>
 
-      {/* 🟩 CONTENEDOR DE BARRA XP */}
+      {/* 🟩 BARRA XP */}
       <div
         style={{
           width: "300px",
@@ -54,7 +104,6 @@ function App() {
           margin: "0 auto"
         }}
       >
-        {/* 🟢 BARRA INTERNA (ANIMADA + GLOW) */}
         <div
           style={{
             width: `${(user.xp / user.xpToNextLevel) * 100}%`,
@@ -68,7 +117,6 @@ function App() {
         />
       </div>
 
-      {/* 📊 TEXTO XP */}
       <p>XP: {user.xp} / {user.xpToNextLevel}</p>
 
       {/* 📝 INPUT */}
@@ -99,10 +147,8 @@ function App() {
                 transform: tarea.completed ? "scale(0.95)" : "scale(1)",
                 transition: "all 0.2s ease"
               }}
-
             >
               {tarea.title} ({tarea.difficulty})
-
             </span>
 
             <button onClick={() => startEditing(tarea, setTask)}>
